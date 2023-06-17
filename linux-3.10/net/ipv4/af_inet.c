@@ -495,14 +495,14 @@ int inet_bind(struct socket *sock, struct sockaddr *uaddr, int addr_len)
 	 * (ie. your servers still start up even if your ISDN link
 	 *  is temporarily down)
 	 */
-	err = -EADDRNOTAVAIL;
+	err = -EADDRNOTAVAIL;//这个错误就是can not assign address错误吧？下面看当我传进来的ip地址不是本机ip会发生什么
 	if (!sysctl_ip_nonlocal_bind &&
 	    !(inet->freebind || inet->transparent) &&
 	    addr->sin_addr.s_addr != htonl(INADDR_ANY) &&
 	    chk_addr_ret != RTN_LOCAL &&
 	    chk_addr_ret != RTN_MULTICAST &&
 	    chk_addr_ret != RTN_BROADCAST)
-		goto out;
+		goto out;//这里跳转到return err,从这里看出这个if就是判断addr是不是合法的关键逻辑
 
 	snum = ntohs(addr->sin_port);
 	err = -EACCES;

@@ -446,14 +446,14 @@ int do_select(int n, fd_set_bits *fds, struct timespec *end_time)
 					break;
 				if (!(bit & all_bits))
 					continue;
-				f = fdget(i);
+				f = fdget(i);//得到第i个file结构体
 				if (f.file) {
 					const struct file_operations *f_op;
 					f_op = f.file->f_op;
 					mask = DEFAULT_POLLMASK;
 					if (f_op && f_op->poll) {
 						wait_key_set(wait, in, out, bit);
-						//3.可以看出是依次调用文件描述符对应的文件操作表当中的poll函数，猜测poll函数是判断是否有事件到来等，下一步需要继续追踪poll函数。
+						//3.可以看出是依次调用文件描述符对应的文件操作表当中的poll函数，猜测poll函数是判断是否有事件到来等，下一步需要继续追踪poll函数。在net/socket.c中有一个struct file_operations socket_file_ops,里面有.poll，被赋予了sock_poll()函数
 						mask = (*f_op->poll)(f.file, wait);
 					}
 					fdput(f);

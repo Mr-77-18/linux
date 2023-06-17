@@ -1109,6 +1109,7 @@ int security_socket_post_create(struct socket *sock, int family,
 						protocol, kern);
 }
 
+//bind()-->security_socket_bind()
 int security_socket_bind(struct socket *sock, struct sockaddr *address, int addrlen)
 {
 	return security_ops->socket_bind(sock, address, addrlen);

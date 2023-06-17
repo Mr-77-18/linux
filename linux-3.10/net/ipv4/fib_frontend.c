@@ -153,6 +153,8 @@ static void fib_flush(struct net *net)
  * Find address type as if only "dev" was present in the system. If
  * on_dev is NULL then all interfaces are taken into consideration.
  */
+
+//inet_bind()-->inet_addr_type()-->__inet_dev_addr_type()
 static inline unsigned int __inet_dev_addr_type(struct net *net,
 						const struct net_device *dev,
 						__be32 addr)
@@ -180,6 +182,7 @@ static inline unsigned int __inet_dev_addr_type(struct net *net,
 	return ret;
 }
 
+//inet_bind()-->inet_addr_type()
 unsigned int inet_addr_type(struct net *net, __be32 addr)
 {
 	return __inet_dev_addr_type(net, NULL, addr);

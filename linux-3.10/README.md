@@ -105,3 +105,78 @@ A -- "ptype_base()" --> C
 
 **接下来将进入ip层处理** ,好像这层有很多钩子函数哦，用于包过滤什么的
 
+## 追踪select函数
+```mermaid
+flowchart LR
+A["select()"]
+B["core_sys_select()"]
+C["do_select()"]
+D["sock_poll()通过socket_file_ops结构体回调里面的.poll函数"]
+E["tcp_poll()通过inet_stream_ops结构体回调里面的.poll函数"]
+A --> B
+B --> C
+C --> D
+D --> E
+`````
+
+
+核心在do_select()里面，源码分析移步fs/select.c文件里面的do_select()函数，下一步要分析poll()函数.在net/socket.c中有一个struct file_operations socket_file_ops，里面有.poll,被赋予了sock_poll()函数
+```c
+static const struct file_operations socket_file_ops = {
+  .owner =  THIS_MODULE,
+  .llseek = no_llseek,
+  .aio_read = sock_aio_read,//asynchronismio read
+  .aio_write =  sock_aio_write,//asynchronismio write
+  .poll =   sock_poll,//.poll这里被注册为了sock_poll()函数
+  .unlocked_ioctl = sock_ioctl,
+#ifdef CONFIG_COMPAT
+  .compat_ioctl = compat_sock_ioctl,
+#endif
+  .mmap =   sock_mmap,
+  .open =   sock_no_open, /* special open code to disallow open via /proc */
+  .release =  sock_close,
+  .fasync = sock_fasync,
+  .sendpage = sock_sendpage,
+  .splice_write = generic_splice_sendpage,
+  .splice_read =  sock_splice_read,
+};
+`````
+继续跟踪sock_poll()函数，发现调用的是socket->ops->poll()函数，我们知道对于family是PF_INET，type是sock_stream的套接字来说这个ops指向的结构体是struct proto_ops inet_stream_ops[在net/ipv4/af_ient.c文件里面],如下代码所示：
+```c
+const struct proto_ops inet_stream_ops = {
+  .family      = PF_INET,
+  .owner       = THIS_MODULE,
+  .release     = inet_release,
+  .bind      = inet_bind,
+  .connect     = inet_stream_connect,
+  .socketpair    = sock_no_socketpair,
+  .accept      = inet_accept,
+  .getname     = inet_getname,
+  .poll      = tcp_poll,
+  .ioctl       = inet_ioctl,
+  .listen      = inet_listen,
+  .shutdown    = inet_shutdown,
+  .setsockopt    = sock_common_setsockopt,
+  .getsockopt    = sock_common_getsockopt,
+  .sendmsg     = inet_sendmsg,
+  .recvmsg     = inet_recvmsg,
+  .mmap      = sock_no_mmap,
+  .sendpage    = inet_sendpage,
+  .splice_read     = tcp_splice_read,
+#ifdef CONFIG_COMPAT
+  .compat_setsockopt = compat_sock_common_setsockopt,
+  .compat_getsockopt = compat_sock_common_getsockopt,
+  .compat_ioctl    = inet_compat_ioctl,
+#endif
+
+}
+
+`````
+**到此为止，一些个人思考** ::smile::select系统调用是通过循环判断各个套接字有没有时间到来，而且似乎也是阻塞的，即对一个套接字的判断是阻塞的？
+### 思考
+对于bind()函数，原型如下:
+```c
+int bind(int sockfd , const struct sockaddr *addr , socklen_t addrlen);
+`````
+
+如果传入的addr并不是本机网卡的ip，会发生什么？

@@ -181,6 +181,7 @@ static DEFINE_PER_CPU(int, sockets_in_use);
  *	invalid addresses -EFAULT is returned. On a success 0 is returned.
  */
 
+//bind()-->move_addr_to_kernel()
 int move_addr_to_kernel(void __user *uaddr, int ulen, struct sockaddr_storage *kaddr)
 {
 	if (ulen < 0 || ulen > sizeof(struct sockaddr_storage))
@@ -1145,6 +1146,7 @@ out_release:
 EXPORT_SYMBOL(sock_create_lite);
 
 /* No kernel lock held - perfect */
+//被注册为file_operation里面的.poll函数
 static unsigned int sock_poll(struct file *file, poll_table *wait)
 {
 	struct socket *sock;
@@ -1153,7 +1155,7 @@ static unsigned int sock_poll(struct file *file, poll_table *wait)
 	 *      We can't return errors to poll, so it's either yes or no.
 	 */
 	sock = file->private_data;
-	return sock->ops->poll(file, sock, wait);
+	return sock->ops->poll(file, sock, wait);//对于ipv4的PF_INET stream socket来说，在net/ipv4/af_inet.c里面的struct proto_ops inet_stram_ops
 }
 
 static int sock_mmap(struct file *file, struct vm_area_struct *vma)
@@ -1513,7 +1515,7 @@ SYSCALL_DEFINE3(bind, int, fd, struct sockaddr __user *, umyaddr, int, addrlen)
 
 	sock = sockfd_lookup_light(fd, &err, &fput_needed);
 	if (sock) {
-		err = move_addr_to_kernel(umyaddr, addrlen, &address);
+		err = move_addr_to_kernel(umyaddr, addrlen, &address);//讲用户传进来的地址放入了address当中，继续跟踪address[为了解决bind传入的地址如果不是本机ip的问题]
 		if (err >= 0) {
 			err = security_socket_bind(sock,
 						   (struct sockaddr *)&address,

@@ -2177,7 +2177,9 @@ void __audit_fd_pair(int fd1, int fd2)
  *
  * Returns 0 for success or NULL context or < 0 on error.
  */
-int __audit_sockaddr(int len, void *a)
+
+//bind()-->move_addr_to_kernel()-->audit_sockaddr()-->__audit_sockaddr()
+int __audit_sockaddr(int len, void *a)//a是用户传过来的地址
 {
 	struct audit_context *context = current->audit_context;
 

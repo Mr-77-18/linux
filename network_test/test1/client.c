@@ -25,6 +25,7 @@ int buildConnect(const char *lIp, const char *sIp, int sPort)
 		perror("bind()");
 
 	}
+	while(1);
 
 	struct sockaddr_in srvAddr;
 	srvAddr.sin_family = AF_INET;
@@ -54,7 +55,6 @@ int main(int argc, char *argv[])
 	if (close(fd) < 0) {
 		perror("close()");
 	}
-	while(1);
 
 	return 0;
 }
