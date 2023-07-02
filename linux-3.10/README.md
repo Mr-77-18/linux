@@ -180,3 +180,7 @@ int bind(int sockfd , const struct sockaddr *addr , socklen_t addrlen);
 `````
 
 如果传入的addr并不是本机网卡的ip，会发生什么？
+首先先说结论，内核只允许以下几种地址：
+1. 本机网卡ip，可以有多个,包括lo
+2. 广播地址
+3. 255.255.255.255
