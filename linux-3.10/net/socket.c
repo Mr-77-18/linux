@@ -1303,6 +1303,7 @@ int __sock_create(struct net *net, int family, int type, int protocol,
 		request_module("net-pf-%d", family);
 #endif
 
+
 	rcu_read_lock();
 	pf = rcu_dereference(net_families[family]);
 	err = -EAFNOSUPPORT;
@@ -1370,6 +1371,7 @@ int sock_create_kern(int family, int type, int protocol, struct socket **res)
 }
 EXPORT_SYMBOL(sock_create_kern);
 
+//socket(AF_INEF , SOCK_STREAM , 0)-->socket()
 SYSCALL_DEFINE3(socket, int, family, int, type, int, protocol)
 {
 	int retval;
@@ -1383,6 +1385,7 @@ SYSCALL_DEFINE3(socket, int, family, int, type, int, protocol)
 	BUILD_BUG_ON(SOCK_NONBLOCK & SOCK_TYPE_MASK);
 
 	flags = type & ~SOCK_TYPE_MASK;
+
 	if (flags & ~(SOCK_CLOEXEC | SOCK_NONBLOCK))
 		return -EINVAL;
 	type &= SOCK_TYPE_MASK;
@@ -1390,6 +1393,7 @@ SYSCALL_DEFINE3(socket, int, family, int, type, int, protocol)
 	if (SOCK_NONBLOCK != O_NONBLOCK && (flags & SOCK_NONBLOCK))
 		flags = (flags & ~SOCK_NONBLOCK) | O_NONBLOCK;
 
+	//定义socket , sock等
 	retval = sock_create(family, type, protocol, &sock);
 	if (retval < 0)
 		goto out;
@@ -1507,6 +1511,8 @@ out:
  *	the protocol layer (having also checked the address is ok).
  */
 
+//bind()做的事情是什么：因为socket已经创建了socket , sock,而且赋值了proto_ops , proto
+//下一步对于服务端来说是干什么：当然是设置监听
 SYSCALL_DEFINE3(bind, int, fd, struct sockaddr __user *, umyaddr, int, addrlen)
 {
 	struct socket *sock;
@@ -1515,7 +1521,7 @@ SYSCALL_DEFINE3(bind, int, fd, struct sockaddr __user *, umyaddr, int, addrlen)
 
 	sock = sockfd_lookup_light(fd, &err, &fput_needed);
 	if (sock) {
-		err = move_addr_to_kernel(umyaddr, addrlen, &address);//讲用户传进来的地址放入了address当中，继续跟踪address[为了解决bind传入的地址如果不是本机ip的问题]
+		err = move_addr_to_kernel(umyaddr, addrlen, &address);//将用户传进来的地址放入了address当中，继续跟踪address[为了解决bind传入的地址如果不是本机ip的问题]
 		if (err >= 0) {
 			err = security_socket_bind(sock,
 						   (struct sockaddr *)&address,
@@ -1523,7 +1529,7 @@ SYSCALL_DEFINE3(bind, int, fd, struct sockaddr __user *, umyaddr, int, addrlen)
 			if (!err)
 				err = sock->ops->bind(sock,
 						      (struct sockaddr *)
-						      &address, addrlen);
+						      &address, addrlen);//对于AF_INET来说，proto_ops在ipv4/af_inet.c里面,包括inet_stream_ops[type: SOCK_STREAM] , inet_dgram_ops[type:] , inet_sockraw_osp[]
 		}
 		fput_light(sock->file, fput_needed);
 	}

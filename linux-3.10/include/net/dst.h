@@ -460,7 +460,7 @@ static inline int dst_output(struct sk_buff *skb)
 /* Input packet from network to transport.  */
 static inline int dst_input(struct sk_buff *skb)
 {
-	return skb_dst(skb)->input(skb);
+	return skb_dst(skb)->input(skb);//调用的时ip_local_deliver()
 }
 
 static inline struct dst_entry *dst_check(struct dst_entry *dst, u32 cookie)

@@ -473,12 +473,27 @@ struct device_node *of_find_node_by_path(const char *path)
 	struct device_node *np = of_allnodes;
 	unsigned long flags;
 
+	//加锁
 	raw_spin_lock_irqsave(&devtree_lock, flags);
+
+	//满足什么样的np才能是符合条件的呢：
+	//1. np需要有一个属性full_name
+	//2. full_name属性和path属性相同
+	//3. 能够增加引用计数？
 	for (; np; np = np->allnext) {
 		if (np->full_name && (of_node_cmp(np->full_name, path) == 0)
 		    && of_node_get(np))
 			break;
 	}
+
+	//调试：目的：判断np此时是不是为null:
+	if (np == NULL) {
+		printk("np is null\n");
+	}else{
+		printk("name of np is:%s\n" , np->full_name);
+	}
+
+	//解锁
 	raw_spin_unlock_irqrestore(&devtree_lock, flags);
 	return np;
 }

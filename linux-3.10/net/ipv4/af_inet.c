@@ -343,6 +343,7 @@ lookup_protocol:
 		goto out_rcu_unlock;
 
 	sock->ops = answer->ops;
+	//&tcp_prot
 	answer_prot = answer->prot;
 	answer_no_check = answer->no_check;
 	answer_flags = answer->flags;
@@ -351,6 +352,7 @@ lookup_protocol:
 	WARN_ON(answer_prot->slab == NULL);
 
 	err = -ENOBUFS;
+	//分配sock
 	sk = sk_alloc(net, PF_INET, GFP_KERNEL, answer_prot);
 	if (sk == NULL)
 		goto out;
@@ -457,6 +459,8 @@ EXPORT_SYMBOL(inet_release);
 int sysctl_ip_nonlocal_bind __read_mostly;
 EXPORT_SYMBOL(sysctl_ip_nonlocal_bind);
 
+//对于AF_INET , type:SOCK_STREAM类型的sock来说，bind()函数最终会进入到这里
+//bind()-->SYSCALL_DEFINE#(bind)-->inet_bind()
 int inet_bind(struct socket *sock, struct sockaddr *uaddr, int addr_len)
 {
 	struct sockaddr_in *addr = (struct sockaddr_in *)uaddr;
@@ -486,6 +490,7 @@ int inet_bind(struct socket *sock, struct sockaddr *uaddr, int addr_len)
 			goto out;
 	}
 
+	//这里进去是路由的东西哦,什么rtable啊等等
 	chk_addr_ret = inet_addr_type(net, addr->sin_addr.s_addr);
 
 	/* Not specified by any standard per-se, however it breaks too
@@ -529,7 +534,7 @@ int inet_bind(struct socket *sock, struct sockaddr *uaddr, int addr_len)
 		inet->inet_saddr = 0;  /* Use device */
 
 	/* Make sure we are allowed to bind here. */
-	if (sk->sk_prot->get_port(sk, snum)) {
+	if (sk->sk_prot->get_port(sk, snum)) {//这里进去是端口号的哈希表什么的，什么桶哈希还是什么//地址什么的好像都被设置到了inet当中，即inet_sock结构体
 		inet->inet_saddr = inet->inet_rcv_saddr = 0;
 		err = -EADDRINUSE;
 		goto out_release_sock;
@@ -1034,8 +1039,8 @@ static struct inet_protosw inetsw_array[] =
 	{
 		.type =       SOCK_STREAM,
 		.protocol =   IPPROTO_TCP,
-		.prot =       &tcp_prot,
-		.ops =        &inet_stream_ops,
+		.prot =       &tcp_prot,//放sock里面
+		.ops =        &inet_stream_ops,//放socket里面
 		.no_check =   0,
 		.flags =      INET_PROTOSW_PERMANENT |
 			      INET_PROTOSW_ICSK,
@@ -1048,25 +1053,25 @@ static struct inet_protosw inetsw_array[] =
 		.ops =        &inet_dgram_ops,
 		.no_check =   UDP_CSUM_DEFAULT,
 		.flags =      INET_PROTOSW_PERMANENT,
-       },
+	},
 
-       {
+	{
 		.type =       SOCK_DGRAM,
 		.protocol =   IPPROTO_ICMP,
 		.prot =       &ping_prot,
 		.ops =        &inet_dgram_ops,
 		.no_check =   UDP_CSUM_DEFAULT,
 		.flags =      INET_PROTOSW_REUSE,
-       },
+	},
 
-       {
-	       .type =       SOCK_RAW,
-	       .protocol =   IPPROTO_IP,	/* wild card */
-	       .prot =       &raw_prot,
-	       .ops =        &inet_sockraw_ops,
-	       .no_check =   UDP_CSUM_DEFAULT,
-	       .flags =      INET_PROTOSW_REUSE,
-       }
+	{
+		.type =       SOCK_RAW,
+		.protocol =   IPPROTO_IP,	/* wild card */
+		.prot =       &raw_prot,
+		.ops =        &inet_sockraw_ops,
+		.no_check =   UDP_CSUM_DEFAULT,
+		.flags =      INET_PROTOSW_REUSE,
+	}
 };
 
 #define INETSW_ARRAY_LEN ARRAY_SIZE(inetsw_array)

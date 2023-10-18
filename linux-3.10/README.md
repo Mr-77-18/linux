@@ -41,6 +41,7 @@ B -- "根据type" --> C
 
 ```c
 //通过参数type选择,./ipv4/af_inet.c
+//internet protocol swithch
 static struct inet_protosw inetsw_array[] =                                                                                                                            
 {
 {
@@ -184,3 +185,57 @@ int bind(int sockfd , const struct sockaddr *addr , socklen_t addrlen);
 1. 本机网卡ip，可以有多个,包括lo
 2. 广播地址
 3. 255.255.255.255
+
+---
+
+```c
+int lfd= socket(AF_INET , SOCK_STREAM , 0);
+
+if (lfd < 0) {
+perror("socket");
+
+}
+
+struct sockaddr_in servAddr;
+servAddr.sin_family = AF_INET;
+servAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+servAddr.sin_port = htons(8081);
+
+if (bind(lfd , (struct sockaddr*)&servAddr , sizeof(servAddr)) < 0) {
+perror("bind()");
+
+}
+
+if (listen(lfd , 1024) < 0) {
+perror("listen");
+
+}
+`````
+
+关键的数据结构：
+```c
+//类型
+struct net_proto_family
+struct inet_protosw
+//实例是一个数组
+
+struct proto_ops
+struct proto
+//实例：
+tcp_proto是这个类型的一个实例
+
+//从外到内
+//利用这个ip上传到tcp等
+struct net_protocol
+//实例：
+inet_protos是这个类型的数组
+
+//利用这个找到ip_rcv()
+struct packet_type
+//实例：
+`````
+---
+
+## 追踪socket(AF_INET , SOCK_STREAM);
+socket()-->SYSCALL_DEFINE3(socket , int  , family , int , type , int , protocol)
+

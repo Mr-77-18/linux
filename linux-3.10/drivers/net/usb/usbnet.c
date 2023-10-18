@@ -1546,6 +1546,7 @@ usbnet_probe (struct usb_interface *udev, const struct usb_device_id *prod)
 
 	// allow device-specific bind/init procedures
 	// NOTE net->name still not usable ...
+	//这里注册函数
 	if (info->bind) {
 		status = info->bind (dev, udev);
 		if (status < 0)

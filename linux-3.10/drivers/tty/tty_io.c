@@ -1026,6 +1026,7 @@ static ssize_t tty_read(struct file *file, char __user *buf, size_t count,
 
 	/* We want to wait for the line discipline to sort out in this
 	   situation */
+/* 我们希望在这种情况下等待行规整 */
 	ld = tty_ldisc_ref_wait(tty);
 	if (ld->ops->read)
 		i = (ld->ops->read)(tty, file, buf, count);

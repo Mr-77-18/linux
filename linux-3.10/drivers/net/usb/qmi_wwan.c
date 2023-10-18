@@ -216,6 +216,7 @@ err:
 	return rv;
 }
 
+//在这里会注册net_device_ops
 static int qmi_wwan_bind(struct usbnet *dev, struct usb_interface *intf)
 {
 	int status = -1;

@@ -1822,7 +1822,7 @@ int tcp_v4_do_rcv(struct sock *sk, struct sk_buff *skb)
 				sk->sk_rx_dst = NULL;
 			}
 		}
-		if (tcp_rcv_established(sk, skb, tcp_hdr(skb), skb->len)) {
+		if (tcp_rcv_established(sk, skb, tcp_hdr(skb), skb->len)) {//here
 			rsk = sk;
 			goto reset;
 		}
@@ -1999,12 +1999,13 @@ int tcp_v4_rcv(struct sk_buff *skb)
 	TCP_SKB_CB(skb)->ip_dsfield = ipv4_get_dsfield(iph);
 	TCP_SKB_CB(skb)->sacked	 = 0;
 
+	//找到对应的sock
 	sk = __inet_lookup_skb(&tcp_hashinfo, skb, th->source, th->dest);
 	if (!sk)
 		goto no_tcp_socket;
 
 process:
-	if (sk->sk_state == TCP_TIME_WAIT)
+	if (sk->sk_state == TCP_TIME_WAIT)//如果sock的状态是tcp_time_wait
 		goto do_time_wait;
 
 	if (unlikely(iph->ttl < inet_sk(sk)->min_ttl)) {
