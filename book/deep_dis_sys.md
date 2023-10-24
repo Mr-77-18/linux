@@ -237,3 +237,4 @@ Ret AppendEntries(Args){
 `````
 在Raft这个例子当中，这个time out是需要随机生成的，触发的动作是状态转变，状态转变之后会有不同的动作。
 
+UNIX_code里的raft_1.c模拟了一个节点的心跳发送和超时后进入Candidate状态,随后的raft_2.c在1的基础之上实现真正的rpc调用，这里又设计到C语言里面的rpc调用。[请点击跳转](../UNIX_code/time/c_rpc.md)
