@@ -1,4 +1,4 @@
-//再raft.c的基础上进行完善，一步一步接近真实的raft
+//再raft_1.c的基础上继续完善，一步一步接近真实的raft
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -26,6 +26,14 @@ struct Argc_To_Thread{
 	int port;
 	int time;
 };
+
+//发送rpc
+void send_appendrpc();
+void send_requestVrpc();
+
+//同样的作为这个group里面的一员，也需要有被调用的rpc函数
+void rec_appendrpc();
+void rec_requestVrpc();
 
 void* time_thread(void* arg)
 {
@@ -123,12 +131,16 @@ void* RPC_time_thread(void* arg)
 				while(1){
 					switch (states) {
 						case Leader:
-							printf("in leader states , and send AppendEntries RPC\n");
 							//周期执行AppendEntries RPC
+							printf("in leader states , and send AppendEntries RPC\n");
+							//思考需不需要status
+						 	send_appendrpc();
 							break;
 						case Candidate:
-							printf("in candidate states , and send RequestVote RPC\n");
 							//周期执行RequestVote RPC
+							printf("in candidate states , and send RequestVote RPC\n");
+							//思考需不需要status
+							send_requestVrpc();
 							break;
 						case Follower:
 							printf("in Fllower states , nothing to send\n");
