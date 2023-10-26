@@ -1,4 +1,4 @@
-all: sock_timeo raft raft_1 mess_test_client mess_test_service
+all: sock_timeo raft raft_1 mess_test_client mess_test_service raft_2
 
 sock_timeo: sock_timeo.c
 	gcc sock_timeo.c -o sock_timeo
@@ -15,7 +15,10 @@ mess_test_client: mess_test_client.c
 mess_test_service: mess_test_service.c
 	gcc -o mess_test_service mess_test_service.c -lnsl
 
+raft_2: raft_2.c
+	gcc -o raft_2 raft_2.c -lnsl -pthread
+
 PHONY: clean
 
 clean:
-	rm sock_timeo raft raft_1 mess_test_service mess_test_client
+	rm sock_timeo raft raft_1 mess_test_service mess_test_client raft_2
