@@ -100,7 +100,9 @@ void* time_thread(void* arg)
 
 			ret = connect(sockfd , (struct sockaddr*)&address , sizeof(address));
 			if (ret == -1) {
+				if (errno == EINPROGRESS) {
 					printf("in time_thread");
+
 					switch (states) {
 						case Leader:
 							break;
@@ -113,9 +115,11 @@ void* time_thread(void* arg)
 							break;
 						default:
 							break;
+
 					}
 				}
-			}	
+			}
+		}	
 	}
 
 	pthread_exit(0);
@@ -256,7 +260,7 @@ void send_requestVrpc(){
 //用户提供一个ipaddr，这个函数负责发送appendrpc，信息也要用户传
 void _send_appendrpc(char* _client_addr , struct Appendrpc _ap_rpc){
 	//调试
-	printf("in _send_appendrpc\n");
+	printf("in _send_appendrpc , the term is:%d\n" , term);
 	CLIENT* client = clnt_create(_client_addr , APPEND_PROG , APPEND_VER , "tcp");
 	if (client == NULL) {
 		printf("error:clnt_create\n");

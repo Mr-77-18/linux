@@ -1,6 +1,6 @@
 #!/bin/bash
 
-gcc raft_2 raft_2.c -pthread -lnsl
+gcc -o raft_2 raft_2.c -pthread -lnsl
 
 # 获取rpcinfo输出并使用awk筛选需要删除的服务
 services_to_delete=$(rpcinfo -p | awk 'NR > 1 && $1 != 100000 && $3 == "udp" { print $1 " " $2 }')

@@ -12,15 +12,20 @@
 #include <string.h>
 #include <pthread.h>
 #include <setjmp.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <signal.h>
 
 
 //rpc
-#include "mess_rpc.h"
+#include "mess_rpc_mult_client.h"
 
 //定义状态
 #define Leader 0
 #define Candidate 1
 #define Follower 2
+
+pid_t pid;
 
 void sig_handler(int signo);
 
@@ -83,7 +88,6 @@ void* time_thread(void* arg)
 
 	//设置超时时间
 	struct timeval timeout;
-	printf("after setjmp\n");
 	timeout.tv_sec = time;
 	timeout.tv_usec = 0;
 	socklen_t len = sizeof(timeout);
@@ -98,6 +102,7 @@ void* time_thread(void* arg)
 			if (ret == -1) {
 				if (errno == EINPROGRESS) {
 					printf("in time_thread");
+
 					switch (states) {
 						case Leader:
 							break;
@@ -112,12 +117,9 @@ void* time_thread(void* arg)
 							break;
 
 					}
-				}else{
-					perror("connect error:");
-					printf("1\n");
 				}
 			}
-		}
+		}	
 	}
 
 	pthread_exit(0);
@@ -126,7 +128,6 @@ void* time_thread(void* arg)
 void* RPC_time_thread(void* arg)
 {
 	signal_mask();//忽略SIGALRM的信号处理
-	sleep(1);
 	//处理参数：
 	struct Argc_To_Thread* p_argc_to_thread = (struct Argc_To_Thread*)arg;
 
@@ -165,13 +166,13 @@ void* RPC_time_thread(void* arg)
 						//周期执行AppendEntries RPC
 						printf("in leader states , and send AppendEntries RPC\n");
 						//思考需不需要status
-						//send_appendrpc();
+						send_appendrpc();
 						break;
 					case Candidate:
 						//周期执行RequestVote RPC
 						printf("in candidate states , and send RequestVote RPC\n");
 						//思考需不需要status
-						//send_requestVrpc();
+						send_requestVrpc();
 						break;
 					case Follower:
 						printf("in Fllower states , nothing to send\n");
@@ -179,7 +180,7 @@ void* RPC_time_thread(void* arg)
 					default:
 						break;
 				}
-		}
+			}
 	}
 	pthread_exit(0);
 }
@@ -187,8 +188,10 @@ void* RPC_time_thread(void* arg)
 //主线程
 int main(int argc, char *argv[])
 {
-	//signal_init();
-	
+	pid = getpid();
+	signal_init();
+	rpc_init();
+
 	pthread_t thid[2];
 	if (argc <= 2) {
 		printf("usage: %s ip_address port_number\n" , argv[0]);
@@ -199,7 +202,7 @@ int main(int argc, char *argv[])
 	struct Argc_To_Thread argc_to_thread1;
 	argc_to_thread1.ip = argv[1];
 	argc_to_thread1.port = atoi(argv[2]);
-	argc_to_thread1.time = 10;
+	argc_to_thread1.time = 8;
 
 	//准备线程2的参数
 	struct Argc_To_Thread argc_to_thread2;
@@ -210,8 +213,9 @@ int main(int argc, char *argv[])
 	pthread_create(&thid[0] , NULL , time_thread , &argc_to_thread1);
 	pthread_create(&thid[1] , NULL , RPC_time_thread , &argc_to_thread2);
 
-	signal_mask();
+	signal_mask();//忽略SIGALRM的信号处理
 
+	svc_run();
 	
 	pthread_join(thid[0] , NULL);
 	pthread_join(thid[1] , NULL);
@@ -236,7 +240,7 @@ void send_appendrpc(){
 	get_append_message(&ap_rpc);
 
 	for (int i = 0; i < CLIENT_SIZE; i++) {
-		_send_appendrpc(Client_Addr[i] , ap_rpc);
+		_send_appendrpc(Addrs[i] , ap_rpc);
 	}
 }
 
@@ -249,15 +253,15 @@ void send_requestVrpc(){
 	get_vote_message(&vt_rpc);
 
 	for (int i = 0; i < CLIENT_SIZE; i++) {
-		_send_requestVrpc(Client_Addr[i] , vt_rpc);
+		_send_requestVrpc(Addrs[i] , vt_rpc);
 	}
 }
 
 //用户提供一个ipaddr，这个函数负责发送appendrpc，信息也要用户传
-void _send_appendrpc(char* _client_addr , struct Appendrpc _ap_rpc){
+void _send_appendrpc(struct client_message _client_addr , struct Appendrpc _ap_rpc){
 	//调试
-	printf("in _send_appendrpc\n");
-	CLIENT* client = clnt_create(_client_addr , APPEND_PROG , APPEND_VER , "tcp");
+	printf("in _send_appendrpc , the term is:%d\n" , term);
+	CLIENT* client = clnt_create(_client_addr.addr , _client_addr.service_append , APPEND_VER , "tcp");
 	if (client == NULL) {
 		printf("error:clnt_create\n");
 	}
@@ -284,10 +288,10 @@ void try_tran_leader(int _success){
 }
 
 //send vote rpc
-void _send_requestVrpc(char* _client_addr , struct Voterpc _vt_rpc){
+void _send_requestVrpc(struct client_message _client_addr , struct Voterpc _vt_rpc){
 	//调试
 	printf("in _send_requestVrpc\n");
-	CLIENT* client = clnt_create(_client_addr , VOTE_PROG , VOTE_VER , "tcp");
+	CLIENT* client = clnt_create(_client_addr.addr , _client_addr.service_vote , VOTE_VER , "tcp");
 	if (client == NULL) {
 		printf("error:clnt_create\n");
 	}
@@ -321,7 +325,7 @@ static void rec_appendrpc(struct svc_req* rqstp , SVCXPRT* transp){
 	}
 
 	//重新开始记（变为candidate的计时器）
-	alarm(0);
+	//alarm(1);
 
 	struct Appendrpc ap_rpc;
 	memset((char*)&ap_rpc , 0 , sizeof(ap_rpc));
@@ -330,6 +334,13 @@ static void rec_appendrpc(struct svc_req* rqstp , SVCXPRT* transp){
 		svcerr_decode(transp);
 		return;
 	}
+
+	if (ap_rpc.term >= term) {
+		states = Follower;
+		term = ap_rpc.term;
+		kill(pid , 14);
+	}
+
 
 	printf("the term is %d\n" , ap_rpc.term);
 
@@ -366,7 +377,10 @@ static void rec_requestVrpc(struct svc_req* rqstp , SVCXPRT* transp){
 	}
 
 	if (vt_rpc.term > term) {//真实情况是需要根据不同点状态进行处理的
+		states = Follower;
+		term = vt_rpc.term;
 		vt_rpc.success = 1;
+		//kill(pid , 14);
 	}
 
 	if (!svc_sendreply(transp , (xdrproc_t)xdr_vote , (caddr_t)&vt_rpc)) {
@@ -436,7 +450,7 @@ void signal_mask(){
 }
 
 void sig_handler(int signo){
-	printf("in sig_handler\n");
+	printf("here\n");
 	siglongjmp(jmpbuf , 1);
 }
 

@@ -235,6 +235,7 @@ Ret AppendEntries(Args){
 120   return 0;
 121 }态转变，状态转变之后会有不同的动作。
 `````
+
 在Raft这个例子当中，这个time out是需要随机生成的，触发的动作是状态转变，状态转变之后会有不同的动作。
 
 UNIX_code里的raft_1.c模拟了一个节点的心跳发送和超时后进入Candidate状态,随后的raft_2.c在1的基础之上实现真正的rpc调用，这里又设计到C语言里面的rpc调用。[请点击跳转](../UNIX_code/time/c_rpc.md)
@@ -244,6 +245,17 @@ UNIX_code里的raft_1.c模拟了一个节点的心跳发送和超时后进入Can
 **答：** 用多线程也可以其实，只需要注意，多线程共享信号集，但是有自己的pending掩码集（可以使用pthread_sigmask）函数来忽略某些信号的处理
 
 所以要回顾一下信号编程（一般是多进程）和多线程编程.[点击调转](../book/hight_per.md)
+
+<font color=red>追加raft进度</font>
+
+UNIX_code/time下新增了raft_mult_client.c和mess_rpc_mult_client.h
+
+目前实现的功能是在client个数多于2的时候能够在一定时间段后稳定处在状态：有一个leader,多个follower。（原来的raft_2.c是只能满足两个client的时候能够到达稳定状态）
+
+1. 产出问题：
+	1. 客户机down后有clnt_create错误;
+	2. 重复调用connect的问题
+2. 剩下的就是继续丰富raft
 
 ## 分布式事务
 这一章主要讲解在分布式中事务应该如何满足ACID这几个特性，主要讨论了原子性和隔离性。
