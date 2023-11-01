@@ -9,7 +9,11 @@ timeline
 	分布式		: 《深入理解分布式系统》
 `````
 ## 读书笔记
-[<<深入理解分布式系统>>](./book/deep_dis_sys.md)
+[ <<深入理解分布式系统>> ](./book/deep_dis_sys.md)
 
+[ <<linux高性能服务器编程>> ](./book/hight_per.md)
 
+[ <<进程间通信>> ](./book/interprocess_communications.md)
 
+## linux3.10源码分析
+[ <<总览>> ](./linux-3.10/README.md)
