@@ -18,4 +18,4 @@
 3. shmdt
 3. shmctl
 
-[例子](../UNIX_code/process/shm.c)
+[例子](../UNIX_code/process/ipc.c)
