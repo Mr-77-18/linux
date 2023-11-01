@@ -1,4 +1,4 @@
-### fork , exit分析
+### fork , exit中mm_struct的分析
 阅读fork代码的着眼点：mm_struct
 
 fork()
@@ -9,7 +9,7 @@ SYSCALL_DEFINE0(fork){
 `````
 对于do_fork，这里需要说明一些第一个参数的作用:第一个参数是一个标志，分为两部分：
 1. 进程结束的时候想父进程发送的信号是什么
-2. fork的标志，比如CLONE_VM , CLONE_VFORK等等
+2. fork的标志，比如CLONE_VM[clone的时候使用CLONE_VM的简单示例](../UNIX_code/process/clone_vm.c) , CLONE_VFORK等等
 
 fork()->do_fork()
 ```c
@@ -83,4 +83,78 @@ static int dup_mmap(struct mm_struct* mm , struct mm_struct* oldmm){
 这个函数就是复制虚存空间，并且在虚存空间具有VM_MAYWRITE属性时采用copy-on-write技术
 
 至此大概看清楚了关于mm_struct在fork的过程中是怎么被处理的
+
+```mermaid
+flowchart LR
+A["fork()"];
+B["do_fork()"];
+C["copy_process()"];
+D["copy_mm()"];
+E["dup_mm()"];
+F["dup_mmap"];
+A --> B
+B --> C
+C --> D
+D --> E
+E --> F
+`````
+
+
+---
+阅读exit代码的着眼点：mm_struct；
+
+入口如下：
+```c
+SYSCALL_DEFINE1(exit , int, error_code)
+{
+	do_exit((error_code&0xff)<<8);
+}
+`````
+exit()->do_exit()
+```c
+void do_exit(long code){
+	...
+	exit_mm(tsk);//tsk指的是task_struct结构体
+	exit_sem(tsk);
+	exit_files(tsk);
+	exit_fs(tsk);
+	...
+}
+`````
+
+可以看到这里的exit_xxx跟copy_process()里面的copy_xxx很像，其实大部分就是对应的。比如copy_files()对应的释放就是exit_files()
+
+exit()->do_exit()->exit_mm()
+
+```c
+static void exit_mm(){
+	...
+	mm_release();
+	...
+	mmput(mm);//这个mm是指mm_struct结构体
+}
+`````
+
+这里要说明一下mmput()才是释放mm_struct的操作,mm_release需要说明的是，我们知道采用vfork的时候，父进程是阻塞的，直到子进程退出或者调用了execv()等，所以这里会涉及到一个唤醒操作，请看下面mm_release()函数的最后一行：
+```c
+void mm_release(){
+	...
+	if(tsk->vfork_done)
+		complete_vfork_done(tsk);
+}
+`````
+
+这个complete_vfork_done函数里面就有唤醒父进程的操作。
+
+到此，也基本说明了释放mm_struct的函数调用路径
+
+```mermaid
+flowchart LR
+A["exit()"];
+B["do_exit()"];
+C["exit_mm()"];
+A --> B
+B --> C
+`````
+
 
